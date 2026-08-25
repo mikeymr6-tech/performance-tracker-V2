@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#006fba">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AWS Tracker">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="all-weather-seal-logo.png">
+<title>AWS Performance Tracker</title>
+<style>
+*{box-sizing:border-box}
+:root{--blue:#006fba;--navy:#064f91;--light:#eaf5fb;--border:#d7e3ea;--text:#17324d;--muted:#667887}
+html,body{margin:0;padding:0;background:#f5f7f9;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif}
+body{min-height:100vh}
+button,input{font:inherit}
+button{cursor:pointer;-webkit-user-select:none;user-select:none}
+.app{width:100%;max-width:650px;margin:0 auto;min-height:100vh;background:#fff}
+.topbar{background:var(--blue);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:13px;min-height:76px}
+.topbar img{width:54px;height:54px;object-fit:contain;background:#fff;border-radius:10px}
+.topbar-title{font-size:17px;font-weight:900;letter-spacing:.35px}
+.topbar-user{font-size:14px;margin-top:3px;opacity:.9}
+.screen{padding:18px 16px 30px}
+.hidden{display:none!important}
+
+/* Login */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 18px;background:linear-gradient(#fff,#f4f8fb)}
+.login-card{width:100%;max-width:460px;text-align:center}
+.login-logo{width:170px;height:170px;object-fit:contain;margin:0 auto 10px}
+.login-title{font-size:27px;font-weight:900;color:var(--navy);margin:8px 0 4px}
+.login-sub{font-size:14px;color:var(--muted);margin-bottom:20px}
+.card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:16px;box-shadow:0 4px 16px rgba(0,50,90,.06);margin-bottom:14px}
+label{display:block;text-align:left;font-size:13px;font-weight:800;margin:0 0 7px}
+.field{margin-bottom:14px}
+input{width:100%;height:52px;border:1.5px solid #c9d7df;border-radius:13px;padding:0 14px;color:var(--text);background:#fff;outline:none}
+input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,111,186,.12)}
+.primary{width:100%;height:54px;border:0;border-radius:14px;background:var(--navy);color:#fff;font-weight:900;font-size:16px}
+.secondary{border:0;border-radius:12px;background:#edf4f8;color:var(--navy);font-weight:800;padding:11px 14px}
+.required{font-size:11px;color:var(--muted);margin-top:10px}
+
+/* Shift header */
+.shift-info{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:10px}
+.goal-card{background:var(--light);border:0}
+.goal-label{font-size:12px;font-weight:900;color:var(--navy);letter-spacing:.8px}
+.goal-number{font-size:31px;font-weight:950;margin-top:2px}
+.progress{height:10px;background:#cbdde8;border-radius:99px;overflow:hidden;margin-top:8px}
+.progress-bar{height:100%;background:var(--blue);width:0%;transition:width .15s}
+
+/* Metric buttons */
+.section-title{font-size:18px;font-weight:900;margin:2px 0 3px;color:var(--navy)}
+.section-sub{font-size:13px;color:var(--muted);margin-bottom:13px}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric-btn{min-height:78px;border:1.5px solid var(--border);background:#fff;border-radius:15px;color:var(--text);padding:10px 7px;font-weight:850;box-shadow:0 3px 8px rgba(0,50,90,.05)}
+.metric-btn:active{transform:scale(.97);background:var(--light)}
+.metric-name{display:block;font-size:14px;line-height:1.12}
+.metric-total{display:block;font-size:25px;line-height:1;margin-top:7px;color:var(--blue);font-weight:950}
+.metric-btn.set{border-color:#0b70b9;background:#f2f9fd}
+
+/* Totals/correction */
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.summary-item{background:#f7fafc;border:1px solid var(--border);border-radius:13px;padding:11px}
+.summary-label{font-size:11px;font-weight:800;color:var(--muted)}
+.summary-value{font-size:23px;font-weight:950;color:var(--navy);margin-top:2px}
+.correction{margin-top:14px}
+.correction-row{display:flex;align-items:center;border-top:1px solid #e7edf1;padding:9px 0;gap:8px}
+.correction-row:first-child{border-top:0}
+.correction-name{flex:1;font-weight:750;font-size:13px}
+.minus{width:36px;height:36px;border:0;border-radius:10px;background:#eef3f6;color:var(--navy);font-size:20px;font-weight:900}
+
+/* End shift */
+.end{width:100%;height:56px;margin-top:15px;border:0;border-radius:15px;background:var(--navy);color:#fff;font-weight:900;font-size:16px}
+.reset{width:100%;margin-top:9px}
+
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(5,30,50,.48);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+.modal{width:100%;max-width:650px;background:#fff;border-radius:22px 22px 0 0;padding:22px 18px 28px;box-shadow:0 -10px 35px rgba(0,0,0,.18)}
+.modal h2{margin:0 0 8px;color:var(--navy)}
+.modal p{color:var(--muted);font-size:14px;line-height:1.45}
+.modal button{width:100%;margin-top:9px;height:50px}
+.notice{background:#fff7df;border:1px solid #ecd18a;color:#6f5600;border-radius:12px;padding:11px;font-size:12px;line-height:1.4}
+
+/* Print report */
+#printReport{display:none}
+@media print{
+ @page{size:Letter portrait;margin:.45in}
+ body{background:#fff}
+ .app{display:none!important}
+ #printReport{display:block!important;color:#111;font-family:Arial,sans-serif}
+ #printReport .report-logo{width:110px;height:110px;object-fit:contain}
+ #printReport h1{font-size:24px;margin:8px 0 15px;color:#064f91}
+ #printReport .meta{font-size:12px;line-height:1.55;margin-bottom:16px}
+ #printReport table{width:100%;border-collapse:collapse;font-size:12px}
+ #printReport th{background:#006fba;color:#fff;padding:8px;text-align:left}
+ #printReport td{border:1px solid #9eb3c0;padding:9px}
+ #printReport .total{text-align:center;font-weight:900}
+ #printReport .tally{font-family:monospace;letter-spacing:2px}
+}
+@media(max-width:390px){
+ .metrics{gap:7px}.metric-btn{min-height:72px}.metric-name{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- LOGIN -->
+  <section id="loginScreen" class="login">
+    <div class="login-card">
+      <img class="login-logo" src="all-weather-seal-logo.png" alt="All-Weather Seal">
+      <div class="login-title">AWS Performance Tracker</div>
+      <div class="login-sub">Start your shift — no password required.</div>
+
+      <div class="card">
+        <div class="field">
+          <label for="nameInput">Employee Name *</label>
+          <input id="nameInput" autocomplete="name" placeholder="Enter your name">
+        </div>
+        <div class="field">
+          <label for="emailInput">Email Address *</label>
+          <input id="emailInput" type="email" autocomplete="email" placeholder="you@example.com">
+        </div>
+        <button id="startShift" class="primary">START SHIFT</button>
+        <div class="required">Name and email are required.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <section id="appScreen" class="hidden">
+    <header class="topbar">
+      <img src="all-weather-seal-logo.png" alt="All-Weather Seal">
+      <div>
+        <div class="topbar-title">AWS PERFORMANCE TRACKER</div>
+        <div id="employeeDisplay" class="topbar-user"></div>
+      </div>
+    </header>
+
+    <main class="screen">
+      <div class="card">
+        <div class="shift-info">
+          <div>
+            <label for="storeInput">Store</label>
+            <input id="storeInput" placeholder="Store / location">
+          </div>
+          <div>
+            <label for="goalInput">Set Goal</label>
+            <input id="goalInput" inputmode="numeric" value="15">
+          </div>
+        </div>
+      </div>
+
+      <div class="card goal-card">
+        <div class="goal-label">SET GOAL</div>
+        <div class="goal-number"><span id="setActual">0</span> / <span id="setGoal">15</span></div>
+        <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">LOG CUSTOMER METRICS</div>
+        <div class="section-sub">Tap a button once for each customer milestone.</div>
+        <div id="metrics" class="metrics"></div>
+      </div>
+
+      <div class="summary">
+        <div class="summary-item"><div class="summary-label">TOTAL TALLIES</div><div id="allTotal" class="summary-value">0</div></div>
+        <div class="summary-item"><div class="summary-label">SETS</div><div id="setSummary" class="summary-value">0</div></div>
+      </div>
+
+      <div class="card correction">
+        <div class="section-title" style="font-size:15px">CORRECT A MISTAKE</div>
+        <div id="corrections"></div>
+      </div>
+
+      <button id="endShift" class="end">END SHIFT &amp; DOWNLOAD PDF</button>
+      <button id="logout" class="secondary reset">END SHIFT WITHOUT PDF / START OVER</button>
+    </main>
+  </section>
+</div>
+
+<!-- End-shift modal -->
+<div id="modalBackdrop" class="modal-backdrop hidden">
+  <div class="modal">
+    <h2>Shift Complete</h2>
+    <p>Your performance report is ready. On iPhone, choose <b>Print</b> and then use the print preview's Share button to <b>Save to Files</b>, send it by email, or share it wherever you want.</p>
+    <div class="notice">Nothing is emailed automatically. You choose where the PDF goes.</div>
+    <button id="printPdf" class="primary">OPEN PDF / PRINT</button>
+    <button id="closeModal" class="secondary">CANCEL</button>
+  </div>
+</div>
+
+<!-- Hidden printable report -->
+<section id="printReport">
+  <img class="report-logo" src="all-weather-seal-logo.png" alt="All-Weather Seal">
+  <h1>ALL-WEATHER SEAL — PERFORMANCE TALLY SHEET</h1>
+  <div id="reportMeta" class="meta"></div>
+  <table>
+    <thead><tr><th>METRIC</th><th>ACTUAL TALLY</th><th>TOTAL</th></tr></thead>
+    <tbody id="reportRows"></tbody>
+  </table>
+</section>
+
+<script>
+const METRICS = [
+  "Product Picked",
+  "Need Building",
+  "Value of Visit",
+  "Note Taking",
+  "Scheduling",
+  "Confirmation Call",
+  "Set",
+  "ND",
+  "CTS"
+];
+
+let employee = {name:"", email:"", store:"", goal:15};
+let counts = {};
+let currentSession = false;
+
+function blankCounts(){
+  return Object.fromEntries(METRICS.map(m => [m,0]));
+}
+function $(id){ return document.getElementById(id); }
+
+function saveSession(){
+  localStorage.setItem("awsTrackerSession", JSON.stringify({employee,counts,currentSession:true}));
+}
+function clearSession(){
+  localStorage.removeItem("awsTrackerSession");
+  employee={name:"",email:"",store:"",goal:15};
+  counts=blankCounts();
+  currentSession=false;
+}
+function restoreSession(){
+  try{
+    const saved=JSON.parse(localStorage.getItem("awsTrackerSession"));
+    if(saved && saved.employee && saved.employee.name && saved.employee.email){
+      employee=saved.employee;
+      counts={...blankCounts(),...(saved.counts||{})};
+      currentSession=true;
+      showApp();
+    }
+  }catch(e){}
+}
+function showApp(){
+  $("loginScreen").classList.add("hidden");
+  $("appScreen").classList.remove("hidden");
+  $("employeeDisplay").textContent=employee.name;
+  $("storeInput").value=employee.store||"";
+  $("goalInput").value=employee.goal||15;
+  render();
+}
+function render(){
+  $("setActual").textContent=counts.Set;
+  $("setGoal").textContent=employee.goal;
+  $("setSummary").textContent=counts.Set;
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  $("allTotal").textContent=total;
+  $("progressBar").style.width=Math.min(100,(counts.Set/Math.max(1,employee.goal))*100)+"%";
+
+  $("metrics").innerHTML=METRICS.map(m=>`
+    <button class="metric-btn ${m==="Set"?"set":""}" data-log="${escapeHtml(m)}">
+      <span class="metric-name">${escapeHtml(m)}</span>
+      <span class="metric-total">${counts[m]}</span>
+    </button>
+  `).join("");
+
+  $("corrections").innerHTML=METRICS.map(m=>`
+    <div class="correction-row">
+      <div class="correction-name">${escapeHtml(m)}</div>
+      <div>${counts[m]}</div>
+      <button class="minus" data-minus="${escapeHtml(m)}" aria-label="Subtract one ${escapeHtml(m)}">−</button>
+    </div>
+  `).join("");
+
+  document.querySelectorAll("[data-log]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const m=btn.getAttribute("data-log");
+      counts[m]++;
+      saveSession();
+      render();
+      if(navigator.vibrate) navigator.vibrate(10);
+    });
+  });
+  document.querySelectorAll("[data-minus]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const m=btn.getAttribute("data-minus");
+      if(counts[m]>0) counts[m]--;
+      saveSession();
+      render();
+    });
+  });
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+function tallyMarks(n){
+  if(!n) return "—";
+  let a=[];
+  for(let i=0;i<n;i++) a.push("I");
+  return a.join(" ");
+}
+
+$("startShift").addEventListener("click",()=>{
+  const name=$("nameInput").value.trim();
+  const email=$("emailInput").value.trim();
+  if(!name){
+    alert("Please enter the employee name.");
+    return;
+  }
+  if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+    alert("Please enter a valid email address.");
+    return;
+  }
+  employee={name,email,store:"",goal:15};
+  counts=blankCounts();
+  currentSession=true;
+  saveSession();
+  showApp();
+});
+
+$("storeInput").addEventListener("input",e=>{
+  employee.store=e.target.value;
+  saveSession();
+});
+$("goalInput").addEventListener("input",e=>{
+  let n=parseInt(e.target.value,10);
+  if(!Number.isFinite(n)||n<0)n=0;
+  employee.goal=n;
+  saveSession();
+  render();
+});
+
+function buildReport(){
+  const date=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});
+  $("reportMeta").innerHTML=
+    `<b>Employee:</b> ${escapeHtml(employee.name)}<br>`+
+    `<b>Email:</b> ${escapeHtml(employee.email)}<br>`+
+    `<b>Store:</b> ${escapeHtml(employee.store||"—")}<br>`+
+    `<b>Date:</b> ${date}<br>`+
+    `<b>Set Goal:</b> ${employee.goal}`;
+  $("reportRows").innerHTML=METRICS.map(m=>
+    `<tr><td><b>${escapeHtml(m)}</b></td><td class="tally">${tallyMarks(counts[m])}</td><td class="total">${counts[m]}</td></tr>`
+  ).join("");
+}
+
+$("endShift").addEventListener("click",()=>{
+  buildReport();
+  $("modalBackdrop").classList.remove("hidden");
+});
+$("closeModal").addEventListener("click",()=>{
+  $("modalBackdrop").classList.add("hidden");
+});
+$("printPdf").addEventListener("click",()=>{
+  $("modalBackdrop").classList.add("hidden");
+  buildReport();
+  setTimeout(()=>window.print(),120);
+});
+$("logout").addEventListener("click",()=>{
+  if(confirm("End this shift and clear the current tallies?")){
+    clearSession();
+    $("appScreen").classList.add("hidden");
+    $("loginScreen").classList.remove("hidden");
+    $("nameInput").value="";
+    $("emailInput").value="";
+  }
+});
+
+window.addEventListener("afterprint",()=>{
+  // Keep the completed shift visible until the employee explicitly starts over.
+});
+
+restoreSession();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>

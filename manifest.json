@@ -1,0 +1,12 @@
+{
+  "name":"AWS Performance Tracker",
+  "short_name":"AWS Tracker",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#ffffff",
+  "theme_color":"#006fba",
+  "orientation":"portrait",
+  "icons":[
+    {"src":"all-weather-seal-logo.png","sizes":"any","type":"image/png","purpose":"any maskable"}
+  ]
+}
